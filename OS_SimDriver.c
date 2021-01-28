@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
     // check for only one arg
     if (argc < 2 ) {
         // show error message, end program
-        showProgramFormat()
+        showProgramFormat();
         // unset program run flag
         programRunFlag = False;
         // set info flag
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     fileName[0] = NULL_CHAR;
 
     // loop across args and program run flag
-    while (programRunFlat == False && argIndex < argc) {
+    while (programRunFlag == False && argIndex < argc) {
         // find lengths to verify file name
         fileStrLen = getStringLength(argv[argIndex]);
         fileStrSubLoc = findSubString(argv[argIndex], ".cnf");
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
             // set config upload flag
             configUploadFlag = True;
             // set meta data display flag
-            mddisplayFlag = True;
+            mdDisplayFlag = True;
         }
         // otherwise, check for -rs run simulator
         else if (compareString(argv[argIndex], "-rs") == STR_EQ) {
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     // check for program run flag
     if (programRunFlag == True && (mdDisplayFlag == True || runSimFlag == True))  {
         // upload meta data file, check for success
-        if (getMetadata(configDataPtr->metaDataFileName, &metaDataPtr, errorMessage) == True) {
+        if (getMetaData(configDataPtr->metaDataFileName, &metaDataPtr, errorMessage) == True) {
             // check meta data display flag
             if (mdDisplayFlag == True) {
                 // display meta data
@@ -142,4 +142,14 @@ int main(int argc, char** argv) {
  */
 void showProgramFormat() {
     // print out command line argument instructions
+    printf("Program Format:\n");
+    printf("     sim [-dc] [-dm] [-rs] <config file name>\n");
+    printf("     -dc [optional] displays configuration data\n");
+    printf("     -dm [optional] displays meta data\n");
+    printf("     -rs [optional] runs simulator\n");
+    printf("     config file name is required\n");
+}
+
+void runSim(ConfigDataType *configDataPtr, OpCodeType *metaDataPtr) {
+    printf("runSim called here\n");
 }

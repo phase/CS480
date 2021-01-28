@@ -1,5 +1,7 @@
 #include "metadataops.h"
 
+const int BAD_ARG_VAL = -1;
+
 /*
  * Function Name: clearMetaDataList
  * Algorithm: recursively iterates through op code linked list, returns memory to OS from the bottom of the list upward
@@ -35,7 +37,7 @@ void displayMetaData(OpCodeType *localPtr) {
     printf("Meta-Data File Display\n");
     printf("----------------------\n");
     // loop to end of linked list
-    while(localPtr != NULL) {
+    while (localPtr != NULL) {
         // print leader
         printf("Op Code: ");
         // print op code pid
@@ -77,12 +79,12 @@ void displayMetaData(OpCodeType *localPtr) {
  * Exceptions: function halted and error message returned if bad input data
  * Notes: none
  */
-Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMsg) {
+Boolean getMetaData(char *fileName, OpCodeType **opCodeDataHead, char *endStateMsg) {
     // initialize variables
-        // init read only constant
-        const char READ_ONLY_FLAG[] = "r";
+    // init read only constant
+    const char READ_ONLY_FLAG[] = "r";
     int accessResult, startCount = 0, endCount = 0;
-    char dataBuffer[MAX_STR_LEN]l
+    char dataBuffer[MAX_STR_LEN];
     Boolean ignoreLeadingWhiteSpace = True;
     Boolean stopAtNonPrintable = True;
     Boolean returnState = True;
@@ -116,9 +118,6 @@ Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMs
     newNodePtr = (OpCodeType *) malloc(sizeof(OpCodeType));
     // get first op command
     accessResult = getOpCommand(fileAccessPtr, newNodePtr);
-    // get start and end counts for later comparison
-    startCount = updateStartCount(startCount, newNodePtr->strArg1);
-    endCount = updateEndCount(endCount, newNodePtr->strArg1);
     // check for failure of first complete op command
     if (accessResult != COMPLETE_OPCMD_FOUND_MSG) {
         // close file
@@ -132,6 +131,9 @@ Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMs
         // return result of operation
         return False;
     }
+    // get start and end counts for later comparison
+    startCount = updateStartCount(startCount, newNodePtr->strArg1);
+    endCount = updateEndCount(endCount, newNodePtr->strArg1);
     // loop across all remaining op commands (while complete op commands are found)
     while (accessResult == COMPLETE_OPCMD_FOUND_MSG) {
         // add the new op command to the linked list
@@ -170,7 +172,7 @@ Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMs
     }
     // check for any errors found (not no error)
     if (accessResult != NO_ERR) {
-        //clear the op command list
+        // clear the op command list
         localHeadPtr = clearMetaDataList(localHeadPtr);
     }
     // close access file
@@ -201,7 +203,7 @@ int getOpCommand(FILE *filePtr, OpCodeType *inData) {
         const int MAX_ARG_STR_LENGTH = 15;
         // init other variables
         int accessResult, numBuffer = 0;
-        char strBuffer[STR_STR_LEN];
+        char strBuffer[STD_STR_LEN];
         char cmdBuffer[MAX_CMD_LENGTH];
         char argStrBuffer[MAX_ARG_STR_LENGTH];
         int runningStringIndex = 0;
@@ -215,7 +217,7 @@ int getOpCommand(FILE *filePtr, OpCodeType *inData) {
         // get three-letter command
         runningStringIndex = getCommand(cmdBuffer, strBuffer, runningStringIndex);
         // assign op command to node
-        copyString(inData->command, cmdBuffer)
+        copyString(inData->command, cmdBuffer);
     }
     // otherwise, assume unsuccessful access
     else {

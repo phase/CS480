@@ -17,12 +17,12 @@ typedef enum {
     LAST_OPCMD_FOUND_MSG
 } OpCodeMessages;
 
-const int BAD_ARG_VAL = -1;
+extern const int BAD_ARG_VAL;
 
 // function prototypes
 OpCodeType *clearMetaDataList(OpCodeType *localPtr);
 void displayMetaData(OpCodeType *localPtr);
-Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMsg);
+Boolean getMetaData(char *fileName, OpCodeType **opCodeDataHead, char *endStateMsg);
 int getOpCommand(FILE *filePtr, OpCodeType *inData);
 int updateStartCount(int count, char *opString);
 int updateEndCount(int count, char *opString);

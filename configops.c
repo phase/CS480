@@ -173,7 +173,7 @@ Boolean getConfigData(char *fileName, ConfigDataType **configData, char *endStat
                 // close file access
                 fclose(fileAccessPtr);
                 // set end state message to config data out of range
-                copyString(endStateMsg, "Confgiruation item out of range");
+                copyString(endStateMsg, "Configuration item out of range");
                 // return data out of range
                 return False;
             }
@@ -245,7 +245,7 @@ int getDataLineCode(char *dataBuffer) {
     if (compareString(dataBuffer, "Version/Phase") == STR_EQ) {
         return CFG_VERSION_CODE;
     }
-    if (compareString(dataBuffer, "File Name") == STR_EQ) {
+    if (compareString(dataBuffer, "File Path") == STR_EQ) {
         return CFG_MD_FILE_NAME_CODE;
     }
     if (compareString(dataBuffer, "CPU Scheduling Code") == STR_EQ) {
@@ -421,7 +421,7 @@ ConfigDataCodes getCpuSchedCode(char *codeStr) {
 ConfigDataCodes getLogToCode(char *logToStr) {
     // init variables
         // create temp string
-        int strLen = getStringLength(codeStr);
+        int strLen = getStringLength(logToStr);
         char *tempStr = (char *) malloc(strLen + 1);
         // set default to log to monitor
         int returnVal = LOGTO_MONITOR_CODE;
