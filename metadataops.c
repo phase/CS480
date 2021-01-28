@@ -80,46 +80,107 @@ void displayMetaData(OpCodeType *localPtr) {
 Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMsg) {
     // initialize variables
         // init read only constant
+        const char READ_ONLY_FLAG[] = "r";
+    int accessResult, startCount = 0, endCount = 0;
+    char dataBuffer[MAX_STR_LEN]l
+    Boolean ignoreLeadingWhiteSpace = True;
+    Boolean stopAtNonPrintable = True;
+    Boolean returnState = True;
+    OpCodeType *newNodePtr;
+    OpCodeType *localHeadPtr = NULL;
+    FILE *fileAccessPtr;
     // init op code data pointer in case of return error
+    *opCodeDataHead = NULL;
     // init end state message
+    copyString(endStateMsg, "Metadata file upload successful");
     // open file for reading
+    fileAccessPtr = fopen(fileName, READ_ONLY_FLAG);
     //check for file open failure
+    if (fileAccessPtr == NULL) {
         // set end state message
+        copyString(endStateMsg, "Metadata file access error");
         // return file access error
+        return False;
+    }
     // check first line for correct leader
+    if (getLineTo(fileAccessPtr, MAX_STR_LEN, COLON, dataBuffer, ignoreLeadingWhiteSpace, stopAtNonPrintable) != NO_ERR
+        || compareString(dataBuffer, "Start Program Meta-Data Code") != STR_EQ) {
         // close file
+        fclose(fileAccessPtr);
         // set end state message
+        copyString(endStateMsg, "Corrupt metadata leader line error");
         // return corrupt descriptor error
+        return False;
+    }
     // allocate memory for the temp data structure
+    newNodePtr = (OpCodeType *) malloc(sizeof(OpCodeType));
     // get first op command
+    accessResult = getOpCommand(fileAccessPtr, newNodePtr);
     // get start and end counts for later comparison
+    startCount = updateStartCount(startCount, newNodePtr->strArg1);
+    endCount = updateEndCount(endCount, newNodePtr->strArg1);
     // check for failure of first complete op command
+    if (accessResult != COMPLETE_OPCMD_FOUND_MSG) {
         // close file
+        fclose(fileAccessPtr);
         // clear data from the structure list
+        *opCodeDataHead = clearMetaDataList(localHeadPtr);
         // free temp structure memory
+        free(newNodePtr);
         // set end state message
+        copyString(endStateMsg, "Metadata incomplete first op command found");
         // return result of operation
+        return False;
+    }
     // loop across all remaining op commands (while complete op commands are found)
+    while (accessResult == COMPLETE_OPCMD_FOUND_MSG) {
         // add the new op command to the linked list
+        localHeadPtr = addNode(localHeadPtr, newNodePtr);
+        // get a new op command
+        accessResult = getOpCommand(fileAccessPtr, newNodePtr);
         // update start and end counts for later comparison
+        startCount = updateStartCount(startCount, newNodePtr->strArg1);
+        endCount = updateEndCount(endCount, newNodePtr->strArg1);
     // end loop across remaining op commands
+    }
     // after loop completion, check for last op command found
+    if (accessResult == LAST_OPCMD_FOUND_MSG) {
         // check for start and end op code counts equal
+        if (startCount == endCount) {
             // add the last node to the linked list
-            // set access result to no error for later opation
+            localHeadPtr = addNode(localHeadPtr, newNodePtr);
+            // set access result to no error for later operation
+            accessResult = NO_ERR;
             // check last line for incorrect end descriptor
+            if (getLineTo(fileAccessPtr, MAX_STR_LEN, PERIOD, dataBuffer, ignoreLeadingWhiteSpace, stopAtNonPrintable) != NO_ERR
+                || compareString(dataBuffer, "End Program Meta-Data Code") != STR_EQ) {
                 // set access result to corrupted descriptor error
+                accessResult = MD_CORRUPT_DESCRIPTOR_ERR;
                 // set end state message
+                copyString(endStateMsg, "Metadata corrupted descriptor error");
+            }
+        }
+    }
     // otherwise, assume didn't find end
+    else {
         // set end state message
+        copyString(endStateMsg, "Corrupted metadata op code");
         // unset return state
+        returnState = False;
+    }
     // check for any errors found (not no error)
+    if (accessResult != NO_ERR) {
         //clear the op command list
+        localHeadPtr = clearMetaDataList(localHeadPtr);
+    }
     // close access file
+    fclose(fileAccessPtr);
     // release temp struct memory
+    free(newNodePtr);
     // assign temp local head pointer to parameter return return pointer
+    *opCodeDataHead = localHeadPtr;
     // return access result
-    return False;
+    return returnState;
 }
 
 /*
@@ -136,56 +197,135 @@ Boolean getMetaData(char *fileName, OpCodeType *opCodeDataHead, char *endStateMs
 int getOpCommand(FILE *filePtr, OpCodeType *inData) {
     // init variables
         // init local constants
+        const int MAX_CMD_LENGTH = 5;
+        const int MAX_ARG_STR_LENGTH = 15;
         // init other variables
+        int accessResult, numBuffer = 0;
+        char strBuffer[STR_STR_LEN];
+        char cmdBuffer[MAX_CMD_LENGTH];
+        char argStrBuffer[MAX_ARG_STR_LENGTH];
+        int runningStringIndex = 0;
+        Boolean stopAtNonPrintable = True;
+        Boolean arg2FailureFlag = False;
+        Boolean arg3FailureFlag = False;
     // get whole op command as a string
+    accessResult = getLineTo(filePtr, STD_STR_LEN, SEMICOLON, strBuffer, IGNORE_LEADING_WS, stopAtNonPrintable);
     // check for successful access
+    if (accessResult == NO_ERR) {
         // get three-letter command
+        runningStringIndex = getCommand(cmdBuffer, strBuffer, runningStringIndex);
         // assign op command to node
+        copyString(inData->command, cmdBuffer)
+    }
     // otherwise, assume unsuccessful access
+    else {
         // set pointer to data structure to null
+        inData = NULL;
         // return op command access failure
+        return OPCMD_ACCESS_ERR;
+    }
     // verify op command
+    if (verifyValidCommand(cmdBuffer) == False) {
         // return op command error
+        return CORRUPT_OPCMD_ERR;
+    }
     // set all struct values that may not be initialized to defaults
+    inData->pid = 0;
+    inData->inOutArg[0] = NULL_CHAR;
+    inData->intArg2 = 0;
+    inData->intArg3 = 0;
+    inData->opEndTime = 0.0;
+    inData->nextNode = NULL;
     // check for device command
+    if (compareString(cmdBuffer, "dev") == STR_EQ) {
         // get in/out argument
+        runningStringIndex = getStringArg(argStrBuffer, strBuffer, runningStringIndex);
         // set device in/out argument
+        copyString(inData->inOutArg, argStrBuffer);
         // check correct argument
+        if (compareString(argStrBuffer, "in") != STR_EQ && compareString(argStrBuffer, "out") != STR_EQ) {
             // return argument error
+            return CORRUPT_OPCMD_ARG_ERR;
+        }
+    }
     // get first string arg
+    runningStringIndex = getStringArg(argStrBuffer, strBuffer, runningStringIndex);
     // set device in/out argument
+    copyString(inData->strArg1, argStrBuffer);
     // check for legitimate first string arg
+    if (verifyFirstStringArg(argStrBuffer) == False) {
         // return argument error
+        return CORRUPT_OPCMD_ARG_ERR;
+    }
     // check for last op command found
+    if (compareString(inData->command, "sys") == STR_EQ && compareString(inData->strArg1, "end") == STR_EQ) {
         // return last op command found
+        return LAST_OPCMD_FOUND_MSG;
+    }
     // check for app start seconds argument
+    if (compareString(inData->command, "sys") == STR_EQ && compareString(inData->strArg1, "end") == STR_EQ) {
         // get number arg
+        runningStringIndex = getNumberArg(&numBuffer, strBuffer, runningStringIndex);
         // check for failed number access
+        if (numBuffer <= BAD_ARG_VAL) {
             // set failure flag
+            arg2FailureFlag = True;
+        }
         // set first in arg to number
+        inData->intArg2 = numBuffer;
+    }
     // check for cpu cycle time
+    if (compareString(inData->command, "cpu") == STR_EQ) {
         // get number argument
+        runningStringIndex = getNumberArg(&numBuffer, strBuffer, runningStringIndex);
         // check for failed number access
+        if (numBuffer <= BAD_ARG_VAL) {
             // set failure flag
+            arg2FailureFlag = True;
+        }
         // set first int argument to number
+        inData->intArg2 = numBuffer;
+    }
     // check for device cycle time
+    if (compareString(inData->command, "dev") == STR_EQ) {
         // get number argument
+        runningStringIndex = getNumberArg(&numBuffer, strBuffer, runningStringIndex);
         // check for failed number access
+        if (numBuffer <= BAD_ARG_VAL) {
             // set failure flag
+            arg2FailureFlag = True;
+        }
         // set first int argument to number
+        inData->intArg2 = numBuffer;
+    }
     // check for memory base and offset
+    if (compareString(inData->command, "mem") == STR_EQ) {
         // get number argument for base
+        runningStringIndex = getNumberArg(&numBuffer, strBuffer, runningStringIndex);
         // check for failed number access
+        if (numBuffer <= BAD_ARG_VAL) {
             // set failure flag
+            arg2FailureFlag = True;
+        }
         // set first int argument to number
+        inData->intArg2 = numBuffer;
         // get number argument for offset
+        runningStringIndex = getNumberArg(&numBuffer, strBuffer, runningStringIndex);
         // check for failed number access
+        if (numBuffer <= BAD_ARG_VAL) {
             // set failure flag
+            arg3FailureFlag = True;
+        }
         // set second int argument to number
+        inData->intArg3 = numBuffer;
+    }
     // check int args for upload failure
+    if (arg2FailureFlag == True || arg3FailureFlag == True) {
         // return argument error
+        return CORRUPT_OPCMD_ARG_ERR;
+    }
     // return complete op command found message
-    return 0;
+    return COMPLETE_OPCMD_FOUND_MSG;
 }
 
 /*
@@ -198,9 +338,12 @@ int getOpCommand(FILE *filePtr, OpCodeType *inData) {
  */
 int updateStartCount(int count, char *opString) {
     // check for "start" in op string
+    if (compareString(opString, "start") == STR_EQ) {
         // return incremented start count
+        return count + 1;
+    }
     // return unchanged start count
-    return 0;
+    return count;
 }
 
 /*
@@ -213,9 +356,12 @@ int updateStartCount(int count, char *opString) {
  */
 int updateEndCount(int count, char *opString) {
     // check for "end" in op string
+    if (compareString(opString, "end") == STR_EQ) {
         // return incremented end count
+        return count + 1;
+    }
     // return unchanged end count
-    return 0;
+    return count;
 }
 
 /*
@@ -286,7 +432,14 @@ int getCommand(char *cmd, char *inputStr, int index) {
  */
 Boolean verifyValidCommand(char *testCmd) {
     // check for five string command arguments
+    if (compareString(testCmd, "sys") == STR_EQ
+        || compareString(testCmd, "app") == STR_EQ
+        || compareString(testCmd, "cpu") == STR_EQ
+        || compareString(testCmd, "mem") == STR_EQ
+        || compareString(testCmd, "dev") == STR_EQ) {
         // return True
+        return True;
+    }
     // return False
     return False;
 }
@@ -301,15 +454,25 @@ Boolean verifyValidCommand(char *testCmd) {
  */
 int getStringArg(char *strArg, char *inputStr, int index) {
     // init variables
+    int localIndex = 0;
     // loop to skip white space and comma
+    while (inputStr[index] <= SPACE || inputStr[index] == COMMA) {
         // increment index
+        index++;
+    }
     // loop across string length
+    while(inputStr[index] != COMMA && inputStr[index] != NULL_CHAR) {
         // assign character from input string to buffer string
+        strArg[localIndex] = inputStr[index];
         // increment index
+        index++;
+        localIndex++;
         // set next character to null character
+        strArg[localIndex] = NULL_CHAR;
+    }
     // end loop across string length
     // return current index
-    return 0;
+    return index;
 }
 
 /*
@@ -322,7 +485,23 @@ int getStringArg(char *strArg, char *inputStr, int index) {
  */
 Boolean verifyFirstStringArg(char *strArg) {
     // check for all possible string arg 1 possibilities
+    if (compareString(strArg, "access") == STR_EQ
+        || compareString(strArg, "allocate") == STR_EQ
+        || compareString(strArg, "end") == STR_EQ
+        || compareString(strArg, "ethernet") == STR_EQ
+        || compareString(strArg, "hard drive") == STR_EQ
+        || compareString(strArg, "keyboard") == STR_EQ
+        || compareString(strArg, "monitor") == STR_EQ
+        || compareString(strArg, "printer") == STR_EQ
+        || compareString(strArg, "process") == STR_EQ
+        || compareString(strArg, "serial") == STR_EQ
+        || compareString(strArg, "sound signal") == STR_EQ
+        || compareString(strArg, "start") == STR_EQ
+        || compareString(strArg, "usb") == STR_EQ
+        || compareString(strArg, "video signal") == STR_EQ) {
         // return True
+        return True;
+    }
     // return False
     return False;
 }
@@ -338,17 +517,33 @@ Boolean verifyFirstStringArg(char *strArg) {
  */
 int getNumberArg(int *number, char *inputStr, int index) {
     // init variables
+    Boolean foundDigit = False;
+    *number = 0;
+    int multiplier = 1;
     // loop to skip white space
+    while (inputStr[index] <= SPACE || inputStr[index] == COMMA) {
         // increment index
+        index++;
+    }
     // loop across string length
+    while(isDigit(inputStr[index]) == True && inputStr[index] != NULL_CHAR) {
         // set digit found flag
+        foundDigit = True;
         // assign digit to output
+        (*number) = (*number) * multiplier + inputStr[index] - '0';
         // increment index and multiplier
+        index++;
+        multiplier *= 10;
+    }
     // end loop across string length
+
     // check for digit not found
+    if (foundDigit == False) {
         // set number to BAD_ARG_VAL constant
+        *number = BAD_ARG_VAL;
+    }
     // return current index
-    return 0;
+    return index;
 }
 
 /*
@@ -361,7 +556,10 @@ int getNumberArg(int *number, char *inputStr, int index) {
  */
 Boolean isDigit(char testChar) {
     // check for test character between characters '0' - '9'
+    if (testChar >= '0' && testChar <= '9') {
         // return true
+        return True;
+    }
     // otherwise, assume character is not digit, return false
     return False;
 }

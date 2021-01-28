@@ -1,3 +1,6 @@
+#ifndef CONFIGOPS_H
+#define CONFIGOPS_H
+
 #include "datatypes.h"
 #include "StringUtils.h"
 
@@ -40,3 +43,5 @@ int getDataLineCode(char *dataBuffer);
 Boolean valueInRange(int lineCode, int intVal, double doubleVal, char *stringVal);
 ConfigDataCodes getCpuSchedCode(char *codestr);
 ConfigDataCodes getLogToCode(char *logToStr);
+
+#endif
