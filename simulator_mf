@@ -1,10 +1,10 @@
 CC = gcc
 DEBUG = -g
-LFLAGS = -Wall -std=c99 -pedantic $(DEBUG)
-CFLAGS = -Wall -std=c99 -pedantic -c $(DEBUG)
+LFLAGS = -Wall -std=c99 -pedantic -pthread $(DEBUG)
+CFLAGS = -Wall -std=c99 -pedantic -pthread -c $(DEBUG)
 
-Simulator : OS_SimDriver.o StringUtils.o metadataops.o configops.o
-	$(CC) $(LFLAGS) $^ -o sim
+Simulator : OS_SimDriver.o StringUtils.o metadataops.o configops.o simulator.o
+	$(CC) $(LFLAGS) $^ -o sim02
 
 OS_SimDriver.o : OS_SimDriver.c OS_SimDriver.h
 	$(CC) $(CFLAGS) OS_SimDriver.c
@@ -18,5 +18,8 @@ metadataops.o : metadataops.c metadataops.h
 configops.o : configops.c configops.h
 	$(CC) $(CFLAGS) configops.c
 
+simulator.o : simulator.c simulator.h
+	$(CC) $(CFLAGS) simulator.c
+
 clean:
-	rm sim
+	rm sim02

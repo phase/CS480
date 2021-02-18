@@ -5,8 +5,8 @@
 #include "StringUtils.h"
 #include "metadataops.h"
 #include "configops.h"
+#include "simulator.h"
 
 void showProgramFormat();
-void runSim(ConfigDataType *configDataPtr, OpCodeType *metaDataPtr);
 
 #endif

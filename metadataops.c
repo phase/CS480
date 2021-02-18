@@ -521,7 +521,7 @@ int getNumberArg(int *number, char *inputStr, int index) {
     // init variables
     Boolean foundDigit = False;
     *number = 0;
-    int multiplier = 1;
+    int multiplier = 10;
     // loop to skip white space
     while (inputStr[index] <= SPACE || inputStr[index] == COMMA) {
         // increment index
@@ -532,10 +532,9 @@ int getNumberArg(int *number, char *inputStr, int index) {
         // set digit found flag
         foundDigit = True;
         // assign digit to output
-        (*number) = (*number) * multiplier + inputStr[index] - '0';
-        // increment index and multiplier
+        (*number) = ((*number) * multiplier) + (inputStr[index] - '0');
+        // increment index
         index++;
-        multiplier *= 10;
     }
     // end loop across string length
 

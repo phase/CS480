@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 // GLOBAL CONSTANTS
 typedef enum { False, True } Boolean;

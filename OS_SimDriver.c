@@ -149,7 +149,3 @@ void showProgramFormat() {
     printf("     -rs [optional] runs simulator\n");
     printf("     config file name is required\n");
 }
-
-void runSim(ConfigDataType *configDataPtr, OpCodeType *metaDataPtr) {
-    printf("runSim called here\n");
-}
